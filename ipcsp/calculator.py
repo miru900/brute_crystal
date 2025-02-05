@@ -1,7 +1,7 @@
 import open_grid
 import randomizer
 from ase import Atoms
-from ase.calculators.kim.kim import KIM
+from ase.calculators.kim import KIM
 from ase.visualize import view
 
 # Get all possible configurations
