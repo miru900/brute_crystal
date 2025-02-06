@@ -59,7 +59,7 @@ if __name__ == "__main__":
                 i *= math.factorial(indiv_ion)
                 j += indiv_ion
             i *= math.factorial((settings[key]["grid"] ** 3) - j)
-            actual_cases = math.factorial(settings[key]["grid"] ** 3) // i  # 정수 나눗셈 (//)
+            actual_cases = math.factorial(settings[key]["grid"] ** 3) // i 
             print(f"The actual possible number is {actual_cases}")
             print(f"Open ~ Actual cases took time {time.time() - start} seconds")
 
@@ -126,7 +126,7 @@ if __name__ == "__main__":
 
             print(f"The minimum energy in the cell size range between {cell_range[0]} and {cell_range[-1]} is {min_energy:.3f} eeVee, and the cell size is {best_size:.3f} {angstrom_symbol}")
 
-            # 그래프 출력
+            # graph
             plt.title("The cell size variation and its energy")
             plt.xlabel(f"Cell size, unit: {angstrom_symbol}")
             plt.ylabel("energy, unit : eV")
@@ -134,7 +134,7 @@ if __name__ == "__main__":
             plt.grid(True)
             plt.show()
 
-            # 3D 시각화
+            # Visualization
             if settings[key]["view"]:
                 atoms = Atoms(best_s_r, positions=best_c_r, cell=[best_size] * 3, pbc=[True, True, True])
                 view(atoms)
