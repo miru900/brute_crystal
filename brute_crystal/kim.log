@@ -1,0 +1,13 @@
+2025-02-19:19:46:04KST * 0 * information * 0x5572f7af3a50 * KIM_LogImplementation.cpp:107 * Log object created.  Default verbosity level is 'information'.
+2025-02-19:19:46:04KST * 1 * information * 0x5572f7af3a50 * KIM_LogImplementation.cpp:119 * Log object destroyed.
+2025-02-19:19:46:04KST * 0 * information * 0x5572f7af3a50 * KIM_LogImplementation.cpp:107 * Log object created.  Default verbosity level is 'information'.
+2025-02-19:19:46:04KST * 0 * information * 0x5572f7af4480 * KIM_LogImplementation.cpp:107 * Log object created.  Default verbosity level is 'information'.
+2025-02-19:19:46:04KST * 1 * information * 0x5572f7af4480 * KIM_LogImplementation.cpp:242 * Log object renamed.  ID changed to '0x5572f7af3a50_Collections'.
+2025-02-19:19:46:04KST * 2 * information * 0x5572f7af3a50_Collections * KIM_LogImplementation.cpp:246 * Log object renamed.  ID changed from '0x5572f7af4480'.
+2025-02-19:19:46:04KST * 1 * warning * 0x5572f7af3a50 * KIM_ModelImplementation.cpp:870 * Use of the GetParameterFileName(0, 0x7ffd32dba8a0). function is deprecated. Please use GetParameterFileBasename() instead.
+2025-02-19:19:46:04KST * 3 * information * 0x5572f7af3a50_Collections * KIM_LogImplementation.cpp:119 * Log object destroyed.
+2025-02-19:19:46:04KST * 0 * information * 0x5572f7af5ce0 * KIM_LogImplementation.cpp:107 * Log object created.  Default verbosity level is 'information'.
+2025-02-19:19:46:04KST * 1 * information * 0x5572f7af5ce0 * KIM_LogImplementation.cpp:242 * Log object renamed.  ID changed to '0x5572f7af3a50_0x5572f7af5ce0'.
+2025-02-19:19:46:04KST * 2 * information * 0x5572f7af3a50_0x5572f7af5ce0 * KIM_LogImplementation.cpp:246 * Log object renamed.  ID changed from '0x5572f7af5ce0'.
+2025-02-19:19:46:04KST * 3 * information * 0x5572f7af3a50_0x5572f7af5ce0 * LennardJones612Implementation.cpp:631 * Register argument supportStatus
+2025-02-19:19:46:04KST * 4 * information * 0x5572f7af3a50_0x5572f7af5ce0 * LennardJones612Implementation.cpp:650 * Register callback supportStatus
