@@ -1,0 +1,92 @@
+bash: cannot set terminal process group (-1): Inappropriate ioctl for device
+bash: no job control in this shell
+ 
+:: initializing oneAPI environment ...
+   bash: BASH_VERSION = 5.0.17(1)-release
+   args: Using "$@" for setvars.sh arguments: --force
+:: compiler -- latest
+:: debugger -- latest
+:: dev-utilities -- latest
+:: dpl -- latest
+:: inspector -- latest
+:: itac -- latest
+:: mpi -- latest
+:: tbb -- latest
+:: oneAPI environment initialized ::
+ 
+Radii {'Na': 1.02, 'Cl': 1.81}
+No closest distances between the ions were provided
+Relying on Shannon radii only
+Charges: {'Cl': -1.0, 'Na': 1.0}
+open_grid ~ generating matrix took 0.0071179866790771484 seconds.
+Restricted license - for non-production use only - expires 2026-11-23
+Variables and Constraints are generated
+The objetive function was generated
+Set parameter TimeLimit to value 300
+Gurobi Optimizer version 12.0.0 build v12.0.0rc1 (linux64 - "Ubuntu 20.04.4 LTS")
+
+CPU model: Intel(R) Xeon(R) CPU E5-2697 v4 @ 2.30GHz, instruction set [SSE2|AVX|AVX2]
+Thread count: 36 physical cores, 36 logical processors, using up to 32 threads
+
+Non-default parameters:
+TimeLimit  300
+
+Optimize a model with 70 rows, 128 columns and 260 nonzeros
+Model fingerprint: 0xf8b89ba9
+Model has 8192 quadratic objective terms
+Variable types: 0 continuous, 128 integer (128 binary)
+Coefficient statistics:
+  Matrix range     [1e+00, 1e+00]
+  Objective range  [0e+00, 0e+00]
+  QObjective range [8e-02, 6e+02]
+  Bounds range     [1e+00, 1e+00]
+  RHS range        [1e+00, 4e+00]
+Found heuristic solution: objective 3866.0962756
+Presolve removed 69 rows and 68 columns
+Presolve time: 0.01s
+Presolved: 1 rows, 60 columns, 60 nonzeros
+Presolved model has 1830 quadratic objective terms
+Variable types: 0 continuous, 60 integer (60 binary)
+
+Root relaxation: objective -3.696390e+03, 47 iterations, 0.00 seconds (0.00 work units)
+
+    Nodes    |    Current Node    |     Objective Bounds      |     Work
+ Expl Unexpl |  Obj  Depth IntInf | Incumbent    BestBd   Gap | It/Node Time
+
+H    0     0                    2970.5356499  -94.61783   103%     -    0s
+H    0     0                     873.2168403  -94.61783   111%     -    0s
+H    0     0                     -27.0430665  -94.61783   250%     -    0s
+     0     0  -33.52907    0   45  -27.04307  -33.52907  24.0%     -    0s
+H    0     0                     -28.0912032  -33.52907  19.4%     -    0s
+     0     0  -32.42164    0   45  -28.09120  -32.42164  15.4%     -    0s
+     0     2  -32.42164    0   45  -28.09120  -32.42164  15.4%     -    0s
+
+Cutting planes:
+  Gomory: 2
+  Cover: 1
+  Implied bound: 4
+  Clique: 2
+  MIR: 1
+  Flow cover: 1
+  RLT: 6
+  Relax-and-lift: 1
+
+Explored 1 nodes (73 simplex iterations) in 0.09 seconds (0.03 work units)
+Thread count was 32 (of 36 available processors)
+
+Solution count 5: -28.0912 -27.0431 873.217 ... 3866.1
+No other solutions better than -28.0912
+
+Optimal solution found (tolerance 1.00e-04)
+Best objective -2.809120317226e+01, best bound -2.809120317226e+01, gap 0.0000%
+open_grid ~ integer programming took 3.7836978435516357 seconds.
+The Calculated objective energy is -28.091 eeVee
+One of positions Na_0
+One of positions Cl_2
+One of positions Cl_8
+One of positions Na_21
+One of positions Na_33
+One of positions Cl_40
+One of positions Cl_42
+One of positions Na_63
+The Calculation time is 3.8258066177368164 seconds
