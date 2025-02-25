@@ -74,20 +74,15 @@ class Ewald:
                     k = shifts_recip[s,]  ;  term = (4 * math.pi ** 2) / np.dot(k, k)  ;  term = term * math.exp(-np.dot(k, k) / (4 * alpha ** 2))
                     v = pos[j,] - pos[i,]  ;  term = term * math.cos(np.dot(k, v))  ;  self.dist[i, j] += term / (2 * math.pi * self.cell_volume)
 
-        # symmetry (upper triangle = lower triangle)
+        # symmetry (upper triangle = lower triangle) and total matrix scaling
         for i in np.arange(N):
             for j in np.arange(i):
                 self.dist[i, j] = self.dist[j, i]
-        
-        # Self interaction term scaling and total matrix scaling
-        for i in range(N):
-            self.dist[i, i] = self.dist[i, i] * 1
         self.dist = self.dist * scale
-        
+
     def operator(self):
         vec_gen(self)
         ewal_mat_gen(self, alpha = -1)
-
 
 def energy_ewal_addup(N, T, Vars, o_pos, dist, charge, energy, chem):
     # np.savetxt('testEwaldNew.out', dist, delimiter=',')
