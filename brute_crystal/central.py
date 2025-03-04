@@ -3,9 +3,10 @@ import mods.mod_2 as m2
 import mods.mod_3 as m3
 import mods.mod_4 as m4
 import mods.mod_5 as m5
+import mods.mod_6 as m6
 
 angstrom_symbol = "\u212B"
-mod_list = [m1.mod_cell_one, m2.mod_cell_vari, m3.mod_cell_integer, m4.mod_cell_int_periodic, m5.mod_cell_int_periodic2]
+mod_list = [m1.mod_cell_one, m2.mod_cell_vari, m3.mod_cell_integer, m4.mod_cell_int_periodic, m5.mod_cell_int_periodic2, m6.mod_cell_int_periodic3]
 iter_num = 1
 sample_size = 100
 
@@ -38,11 +39,11 @@ settings = {
         "calc" : "LJ_ElliottAkerson_2015_Universal__MO_959249795837_003",
         "vari_range" : 0.3},
     "SrTiO3_1" : {
-        "State" : 0, "Symbol" : "Sr_1+Ti_1+O_3", "grid" : 2, "cell_size" : 3.9, "view" : True,
+        "State" : 6, "Symbol" : "Sr_1+Ti_1+O_3", "grid" : 2, "cell_size" : 3.9, "view" : True,
         "calc" : "LJ_ElliottAkerson_2015_Universal__MO_959249795837_003",
         "vari_range" : 0.3},
     "NCM_battery" : {
-        "State" : 5, "Symbol" : "Li_3+O_48+Ni_20+Co_2+Mn_2", "grid" : [78, 67, 77], "cell_size" : [10.05628, 5.79685, 14.28257], "view" : True,
+        "State" : 0, "Symbol" : "Li_4+O_48+Ni_20+Co_2+Mn_2", "grid" : [78, 67, 77], "cell_size" : [10.05628, 5.79685, 14.28257], "view" : True,
         "calc" : "LJ_ElliottAkerson_2015_Universal__MO_959249795837_003",
         "vari_range" : 0.2}
 }
