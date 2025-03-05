@@ -29,18 +29,31 @@ class Buckingham(Ewald):
             if shift != (realDepth, realDepth, realDepth):
                 shifts[i,] = shift  ;  shifts[i,] = shifts[i,] - tmp  ;  i = i + 1
         shifts = shifts @ self.vecs
+
+        # Closest distance generator
+        close_dis = self.close_distance_cal()
+        MAX = [300]
     
         # matrix generator for each ion pair made by me!
         for idx, pair in enumerate(self.info["ion_pair"]):
+            print(self.dist[pair])
+            print(pair)
             for i in np.arange(N):
                 for j in np.arange(i, N):
                     if i != j:
                         r = np.linalg.norm(pos[i,] - pos[j,])
-                        self.dist[pair][i, j] += (self.info["A"][idx]) * math.exp(-r / (self.info["B"][idx] * 1e-10)) - (self.info["C"][idx] * 1e-60) / (r ** 6)
+                        if r < close_dis[idx]:
+                            self.dist[pair][i, j] = MAX[0]
+                        else:
+                            self.dist[pair][i, j] += (self.info["A"][idx]) * math.exp(-r / (self.info["B"][idx] * 1e-10)) - (self.info["C"][idx] * 1e-60) / (r ** 6)
 
                     for s in np.arange(len(shifts)):
                         r = np.linalg.norm(pos[i,] + shifts[s,] - pos[j,])
-                        self.dist[pair][i, j] += (self.info["A"][idx]) * math.exp(-r / (self.info["B"][idx] * 1e-10)) - (self.info["C"][idx] * 1e-60) / (r ** 6)
+                        if r < close_dis[idx]:
+                            self.dist[pair][i, j] = MAX[0]
+                            break
+                        else:
+                            self.dist[pair][i, j] += (self.info["A"][idx]) * math.exp(-r / (self.info["B"][idx] * 1e-10)) - (self.info["C"][idx] * 1e-60) / (r ** 6)
     
     def close_distance_cal(self, radius_threshold=0.75):
         close_dis = []
