@@ -1,3 +1,5 @@
+import numpy as np
+
 def chem_compo(grid_num, symbol, ortho = False):
     if ortho:
         grid = ""
@@ -22,6 +24,13 @@ def chem_compo(grid_num, symbol, ortho = False):
         chem.append(b[0])
         ion_count.append(int(b[1]))
     return chem, ion_count, pos_data
+
+def grid_gen(pos_data, cell_size, ortho):
+    if ortho:
+        return np.multiply(pos_data, cell_size)
+    else:
+        return np.array(pos_data) * cell_size
+
 
 # chem, ion_count = chem_compo(compo)
 # print(chem, ion_count)
