@@ -1,0 +1,104 @@
+import numpy as np  
+import os  
+import math
+import multiprocessing as mp
+from scipy.constants import elementary_charge as elec_c
+from scipy.constants import electron_volt as eevee
+from scipy.constants import epsilon_0 as ep0
+
+scale = (elec_c ** 2)  / (4 * math.pi * ep0 * eevee)
+
+class Ewald:
+    def __init__(self, position, cell_size, grid):
+        self.position = position
+        if isinstance(cell_size, list):
+            self.cell_size = np.multiply(cell_size, 1e-10)
+            self.grid = grid
+        else:
+            self.cell_size = np.multiply([cell_size] * 3, 1e-10)
+            self.grid = [grid] * 3
+
+    def vec_gen(self):
+        self.vecs = np.zeros((3, 3))
+        for i in range(3):
+            self.vecs[i, i] = self.cell_size[i]
+        self.cell_volume = abs(np.linalg.det(self.vecs))
+
+        self.reciprocal = np.zeros((3, 3))
+        for i in np.arange(3):
+            recip_vector = 2 * math.pi * np.cross(self.vecs[(1 + i) % 3,], self.vecs[(2 + i) % 3]) / self.cell_volume
+            self.reciprocal[i,] = recip_vector
+
+    def _compute_real_space(self, i, pos, shifts, alpha):
+        N = len(pos)
+        row = np.zeros(N)
+        for j in np.arange(i, N):
+            if i != j:
+                r = np.linalg.norm(pos[i,] - pos[j,])
+                row[j] += math.erfc(alpha * r) / (2 * r)
+
+            for s in range(len(shifts)):
+                r = np.linalg.norm(pos[i,] + shifts[s,] - pos[j,])
+                row[j] += math.erfc(alpha * r) / (2 * r)
+        return i, row
+
+    def _compute_reciprocal_space(self, i, pos, shifts_recip, alpha):
+        N = len(pos)
+        row = np.zeros(N)
+        for j in np.arange(i, N):
+            for s in range(len(shifts_recip)):
+                k = shifts_recip[s,]
+                term = (4 * math.pi ** 2) / np.dot(k, k) * math.exp(-np.dot(k, k) / (4 * alpha ** 2))
+                v = pos[j,] - pos[i,]
+                term *= math.cos(np.dot(k, v))
+                row[j] += term / (2 * math.pi * self.cell_volume)
+        return i, row
+
+    def ewal_mat_gen(self, alpha=-1):
+        N = len(self.position)
+        realDepth, reciprocalDepth = 4, 4
+        pos = self.position
+        self.dist = np.zeros((N, N))
+        if alpha < 0:
+            alpha = 2 / (self.cell_volume ** (1.0 / 3))
+
+        tmp = np.array([realDepth, realDepth, realDepth])
+        shifts = np.array([shift - tmp for shift in np.ndindex((2 * realDepth + 1,) * 3) if shift != (realDepth, realDepth, realDepth)]) @ self.vecs
+        shifts_recip = np.array([shift - tmp for shift in np.ndindex((2 * reciprocalDepth + 1,) * 3) if shift != (reciprocalDepth, reciprocalDepth, reciprocalDepth)]) @ self.reciprocal
+
+        with mp.Pool(mp.cpu_count()) as pool:
+            real_results = pool.starmap(self._compute_real_space, [(i, pos, shifts, alpha) for i in range(N)])
+            recip_results = pool.starmap(self._compute_reciprocal_space, [(i, pos, shifts_recip, alpha) for i in range(N)])
+
+        for i, row in real_results:
+            self.dist[i, i:] += row[i:]
+        for i, row in recip_results:
+            self.dist[i, i:] += row[i:]
+
+        for i in range(N):
+            self.dist[i, i] -= alpha / math.sqrt(math.pi)
+        for i in range(N):
+            for j in range(i):
+                self.dist[i, j] = self.dist[j, i]
+        self.dist *= scale
+
+    def operator(self):
+        self.vec_gen()
+        self.ewal_mat_gen()
+
+def energy_ewal_addup(N, T, Vars, o_pos, dist, charge, energy, chem):
+    # np.savetxt('testEwaldNew.out', dist, delimiter=',')
+    for i1 in range(N):
+
+        for j1 in range(T):  # self-interaction
+            energy.add(Vars[j1][o_pos[i1]] * Vars[j1][o_pos[i1]] * dist[i1, i1] * charge[chem[j1]] ** 2)
+
+        for i2 in range(i1 + 1, N):
+            # print(i2)
+            for j1 in range(T):  # pairwise Coulumb
+                energy.add(Vars[j1][o_pos[i1]] * Vars[j1][o_pos[i2]] * 2 * dist[i1, i2] * charge[chem[j1]] ** 2)  # i1,i2 have the same type of ion
+
+                for j2 in range(j1 + 1, T):
+                    energy.add(Vars[j1][o_pos[i1]] * Vars[j2][o_pos[i2]] * 2 * dist[i1, i2] * charge[chem[j1]] * charge[chem[j2]])  # Two different types
+                    energy.add(Vars[j2][o_pos[i1]] * Vars[j1][o_pos[i2]] * 2 * dist[i1, i2] * charge[chem[j1]] * charge[chem[j2]])  # Symmetrical case
+
