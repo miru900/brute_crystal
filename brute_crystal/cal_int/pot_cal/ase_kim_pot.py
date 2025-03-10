@@ -32,14 +32,14 @@ class ASE_KIM(Ewald):
                 for j in range(i, N):
                     if symbol3 == symbol4:
                         if i == j:
-                            atoms = Atoms(symbol3, positions = [pos[i]], cell = np.multiply( self.cell_size, 1e10 ) , pbc = pbc_f) # Why we multiply 1e10? Because we inherited Ewald, which multiply 1e-10 to settings[key][cell_size]
+                            atoms = Atoms(symbol3, positions = [pos[i]], cell = np.multiply( self.cell_size, 1e10 ) , pbc = pbc_t) # Why we multiply 1e10? Because we inherited Ewald, which multiply 1e-10 to settings[key][cell_size]
                             atoms.calc = self.calc  ;  energy = atoms.get_potential_energy()  ;  self.dist[pair][i, j] = energy
                         elif i != j:
-                            atoms = Atoms(symbol2, positions = [pos[i], pos[j]], cell = np.multiply( self.cell_size, 1e10 ), pbc = pbc_f)
+                            atoms = Atoms(symbol2, positions = [pos[i], pos[j]], cell = np.multiply( self.cell_size, 1e10 ), pbc = pbc_t)
                             atoms.calc = self.calc  ;  energy = atoms.get_potential_energy()  ;  self.dist[pair][i, j] = energy
                     elif symbol3 != symbol4:
                         if i != j:
-                            atoms = Atoms(symbol2, positions = [pos[i], pos[j]], cell = np.multiply( self.cell_size, 1e10 ), pbc = pbc_f)
+                            atoms = Atoms(symbol2, positions = [pos[i], pos[j]], cell = np.multiply( self.cell_size, 1e10 ), pbc = pbc_t)
                             atoms.calc = self.calc  ;  energy = atoms.get_potential_energy()  ;  self.dist[pair][i, j] = energy
 
 def energy_kim_addup(N, Vars, o_pos, energy, types, ase, info):
