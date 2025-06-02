@@ -10,7 +10,6 @@ import os
 from ase.io import write
 import numpy as np
 import matplotlib.pyplot as plt
-import cal_quantum.quantum_cons.salt_square as cqqc
 
 
 def qiskit_simulator(key, settings):
