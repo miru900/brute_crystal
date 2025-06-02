@@ -52,7 +52,8 @@ def mod_cell_int_periodic2(key, settings):
         g_num = []
         iter_position = position[i]
         for pos in iter_position:
-            print(f"One of positions {pos}")
+            if i == 0:
+                print(f"One of positions {pos}")
             a, b = pos.split("_")
             symbol += a ; b = int(b) ; c = np.array(pos_data1[b])
             pos_num.append(c)
