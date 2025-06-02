@@ -10,6 +10,7 @@ import os
 from ase.io import write
 import numpy as np
 import matplotlib.pyplot as plt
+import cal_quantum.quantum_cons.salt_square as cqqc
 
 
 def qiskit_simulator(key, settings):
@@ -36,26 +37,30 @@ def qiskit_simulator(key, settings):
     print(f"open_grid ~ generating matrix took {time.time() - start} seconds.")
 
     # Qiskit Part
-    total_array, type_count, grid_size = qcag.total_array(ewal_mat.dist, chem, charge, grid_size) # Total array generator
-    qp = qcqs.simulator_init(total_array, type_count, grid_size, ion_count) # initialization part
+    print(ion_count)
+    if settings[key]["cons"]:
+        qp = qcqs.simulator_init_cons(ewal_mat.dist, chem, ion_count, charge, settings[key]["cons"])
+    else:
+        qp = qcqs.simulator_init(ewal_mat.dist, chem, ion_count, charge) # initialization part
+
     # special constraint part
-    result = qcqs.simulator_result(qp) # simulating part
+    # cqqc.linear_salt(qp)
+
+    result, constant = qcqs.simulator_result(qp) # simulating part
     print(f"Simulating Quantum Computer Finished, time taken from starting is {time.time() - start} seconds.")
 
     # processing part 1, QAOA result plot
-    sorted_items1 = qcqs.simulator_process(result, grid_size)
-    value = [sorted_items1[i][0] for i in range(len(sorted_items1))]
-    pro = [sorted_items1[i][1] for i in range(len(sorted_items1))]
+    # 나중에 만들어야지~~
 
-    sorted_items2 = qcqs.simulator_process(result, grid_size, sort_by = "probability")
-    value2 = [sorted_items2[i][0] for i in range(len(sorted_items2))]
-    pro2 = [sorted_items2[i][1] for i in range(len(sorted_items2))]
-    fval2 = [sorted_items2[i][2] for i in range(len(sorted_items2))]
-   
     # processing part 2, bit to answers
-    position = qcqs.decode_answer(result, type_count, grid_size, type_names=chem)
-    position = [position]
+    if settings[key]["cons"]:
+        position = qcqs.decode_answer_cons(result, qp); print(position)
+    else:
+        position = qcqs.decode_answer(result, chem, ewal_mat.dist); print(position)
     solcount = len(position)
+    
+    print(f"Quantum data processing has benn finished, time taken from starting is {time.time() - start} seconds.")
+    print("Starting ASE processing")
 
     # processing part 3, ASE part
     all_positions = []
@@ -93,11 +98,9 @@ def qiskit_simulator(key, settings):
             c_pos *= 1e10  ;  # print(c_pos)
 
             atoms = Atoms(all_symbol[i], positions=c_pos, cell = settings[key]["cell_size"] + settings[key]["angle"], pbc=[True, True, True])
-            output_dir = f"../results/{settings[key]['Symbol']}_quantum" ; os.makedirs(output_dir, exist_ok = True) ; file_path = os.path.join(output_dir, f"{i}.cif")
+            output_dir = f"../results/{settings[key]['Symbol']}_quantum" ; os.makedirs(output_dir, exist_ok = True) ; file_path = os.path.join(output_dir, f"{i}_quantum.cif")
             write(file_path, atoms)
             write(file_path.replace(".cif", ".vasp"), atoms, format='vasp')
-            plt.bar(value, pro, color = "hotpink")
-            plt.savefig(f"{output_dir}/distribution.png")
 
     elif ortho and not angle_if:
 
@@ -111,24 +114,16 @@ def qiskit_simulator(key, settings):
 
             c_pos = np.array(current_processing_pos)
             atoms = Atoms(all_symbol[i], positions=c_pos, cell= settings[key]["cell_size"], pbc=[True, True, True])
-            output_dir = f"../results/{settings[key]['Symbol']}_quantum" ; os.makedirs(output_dir, exist_ok = True) ; file_path = os.path.join(output_dir, f"{i}.cif")
+            output_dir = f"../results/{settings[key]['Symbol']}_quantum" ; os.makedirs(output_dir, exist_ok = True) ; file_path = os.path.join(output_dir, f"{i}_quantum.cif")
             write(file_path, atoms)
             write(file_path.replace(".cif", ".vasp"), atoms, format='vasp')
-            plt.bar(value, pro, color = "hotpink")
-            plt.savefig(f"{output_dir}/distribution.png")
 
     else:
         pos_num = np.array(pos_num) ; cell_size = settings[key]["cell_size"] ; pos_num *= cell_size
         atoms = Atoms(symbol, positions=pos_num, cell=[settings[key]["cell_size"]] * 3, pbc=[True, True, True])
-        output_dir = f"../results/{settings[key]['Symbol']}_quantum" ; os.makedirs(output_dir, exist_ok = True) ; file_path = os.path.join(output_dir, f"{settings[key]['Symbol']}.cif")
+        output_dir = f"../results/{settings[key]['Symbol']}_quantum" ; os.makedirs(output_dir, exist_ok = True) ; file_path = os.path.join(output_dir, f"{settings[key]['Symbol']}_quantum.cif")
         write(file_path, atoms)
         write(file_path.replace(".cif", ".vasp"), atoms, format='vasp')
-        plt.bar(value, pro, color = "hotpink")
-        plt.savefig(f"{output_dir}/distribution.png")
-        result = open(f"{output_dir}/result.txt", "w")
-        for i in range(len(value)):
-            result.write(f"{value2[i]}, {pro2[i]}, {fval2[i]}\n")
-        result.close()
 
     end = time.time()
     print(f"The Calculation time is {end - start} seconds")
