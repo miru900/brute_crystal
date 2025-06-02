@@ -4,50 +4,153 @@ from qiskit_optimization.converters import QuadraticProgramToQubo
 from qiskit_algorithms import QAOA
 from qiskit_algorithms.utils import algorithm_globals
 from qiskit.primitives import Sampler  # <-- Use this instead of StatevectorSampler
+from qiskit.primitives import StatevectorSampler
 from qiskit_algorithms.optimizers import COBYLA
+from qiskit_algorithms.optimizers import L_BFGS_B
+
 import numpy as np
 
-def simulator_init(total_array, type_count, grid_size, ion_count):
+def simulator_init(dist, chem, ion_count, charge):
+
     algorithm_globals.random_seed = 42
-    n = total_array.shape[0]
-    print(f"The length is {n}, this is debug line")
-    W = total_array
+    grid_size = dist.shape[0]
+    print(f"The length is {grid_size}, this is debug line")
+    W = dist
+    T = len(chem)
 
     # Define QUBO problem, variables are now just x{i}, but it will be separated into ion in proceessing part.
     qp = QuadraticProgram()
-    for i in range(n):
-        qp.binary_var(name=f"x{i}")
+
+    for i in chem:
+        for j in range(grid_size):
+            qp.binary_var(name=f"{i}_{j}")
 
     # Objective
     linear = {}
     quadratic = {}
-    for i in range(n):
-        if W[i, i] != 0:
-            linear[f"x{i}"] = W[i, i]
-        for j in range(i + 1, n):
-            if W[i, j] != 0:
-                quadratic[(f"x{i}", f"x{j}")] = W[i, j]
-    
+
+    for i1 in range(grid_size):
+
+        for j1 in range(T):
+            quadratic[(f"{chem[j1]}_{i1}", f"{chem[j1]}_{i1}")] = W[i1, i1] * charge[chem[j1]] ** 2
+
+        for i2 in range(i1 + 1, grid_size):
+
+            for j1 in range(T):
+                quadratic[(f"{chem[j1]}_{i1}", f"{chem[j1]}_{i2}")] = 2 * W[i1, i2] * charge[chem[j1]] ** 2
+        
+                for j2 in range(j1 + 1, T):
+                    quadratic[(f"{chem[j1]}_{i1}", f"{chem[j2]}_{i2}")] = 2 * W[i1, i2] * charge[chem[j1]] * charge[chem[j2]]
+                    quadratic[(f"{chem[j2]}_{i1}", f"{chem[j1]}_{i2}")] = 2 * W[i1, i2] * charge[chem[j1]] * charge[chem[j2]]
+
     qp.minimize(linear=linear, quadratic=quadratic)
 
     # Constraints
     # First Constraints, there can be only one atom per position
     for i in range(grid_size):
         one_atom_one_pos = {}
-        for j in range(type_count):
-            var_name = f"x{i + j * grid_size}"
+        for j in range(T):
+            var_name = f"{chem[j]}_{i}"
             one_atom_one_pos[var_name] = 1
-        qp.linear_constraint(one_atom_one_pos, sense="==", rhs=1, name=f"uniqueness_{i}")
+        # qp.linear_constraint(one_atom_one_pos, sense="==", rhs=1, name=f"uniqueness_{i}")
 
     # Second Constraint: each atom type i must appear ion_count[i] times
-    for i in range(type_count):
+
+    for i in range(T):
         satisfy_ion_count = {}
         for j in range(grid_size):
-            var_name = f"x{i * grid_size + j}"
+            var_name = f"{chem[i]}_{j}"
             satisfy_ion_count[var_name] = 1
         qp.linear_constraint(satisfy_ion_count, sense="==", rhs=ion_count[i], name=f"satisfy_ion_count_{i}")
 
     return qp
+
+def simulator_init_cons(dist, chem, ion_count, charge, cons):
+    algorithm_globals.random_seed = 42
+    grid_size = dist.shape[0]
+    T = len(chem)
+    W = dist
+
+    qp = QuadraticProgram()
+
+    # Helper to check if variable is allowed
+    def is_var_allowed(chem_idx, pos):
+        return pos in cons[chem_idx]
+
+    # Keep track of defined variables
+    defined_vars = set()
+
+    # Define binary variables
+    for i, elem in enumerate(chem):
+        for j in range(grid_size):
+            if is_var_allowed(i, j):
+                varname = f"{elem}_{j}"
+                qp.binary_var(name=varname)
+                defined_vars.add(varname)
+
+    # Objective
+    linear = {}
+    quadratic = {}
+
+    for i1 in range(grid_size):
+        for j1 in range(T):
+            if not is_var_allowed(j1, i1):
+                continue
+            var1 = f"{chem[j1]}_{i1}"
+            q = W[i1, i1] * charge[chem[j1]] ** 2
+            quadratic[(var1, var1)] = q
+
+        for i2 in range(i1 + 1, grid_size):
+            for j1 in range(T):
+                if not is_var_allowed(j1, i1):
+                    continue
+                var1 = f"{chem[j1]}_{i1}"
+
+                if is_var_allowed(j1, i2):
+                    var2 = f"{chem[j1]}_{i2}"
+                    if var1 in defined_vars and var2 in defined_vars:
+                        q_same = 2 * W[i1, i2] * charge[chem[j1]] ** 2
+                        quadratic[(var1, var2)] = q_same
+
+                for j2 in range(j1 + 1, T):
+                    if not is_var_allowed(j2, i2):
+                        continue
+                    var2 = f"{chem[j2]}_{i2}"
+                    var3 = f"{chem[j2]}_{i1}"
+                    if var1 in defined_vars and var2 in defined_vars:
+                        q_cross = 2 * W[i1, i2] * charge[chem[j1]] * charge[chem[j2]]
+                        quadratic[(var1, var2)] = q_cross
+                    if var3 in defined_vars and f"{chem[j1]}_{i2}" in defined_vars:
+                        q_cross = 2 * W[i1, i2] * charge[chem[j1]] * charge[chem[j2]]
+                        quadratic[(var3, f"{chem[j1]}_{i2}")] = q_cross
+
+    qp.minimize(linear=linear, quadratic=quadratic)
+
+    # Constraint 1: One atom per position
+    """
+    for i in range(grid_size):
+        constraint = {}
+        for j in range(T):
+            if is_var_allowed(j, i):
+                var = f"{chem[j]}_{i}"
+                if var in defined_vars:
+                    constraint[var] = 1
+        if constraint:
+            qp.linear_constraint(constraint, sense="==", rhs=1, name=f"one_atom_pos_{i}")
+    """
+
+    # Constraint 2: Each atom type appears ion_count[i] times
+    for j in range(T):
+        constraint = {}
+        for i in range(grid_size):
+            if is_var_allowed(j, i):
+                var = f"{chem[j]}_{i}"
+                if var in defined_vars:
+                    constraint[var] = 1
+        qp.linear_constraint(constraint, sense="==", rhs=ion_count[j], name=f"satisfy_ion_count_{j}")
+
+    return qp
+
 
 def simulator_result(qp):
     
@@ -58,73 +161,48 @@ def simulator_result(qp):
     # QAOA setup
     sampler = Sampler()
     optimizer = COBYLA()
-    qaoa = QAOA(optimizer=optimizer, sampler=sampler, reps=1)
+    qaoa = QAOA(optimizer = optimizer, sampler = sampler, reps = 1)
 
     # Solve
     solver = MinimumEigenOptimizer(qaoa)
     result = solver.solve(qubo)
     result_sample = result.samples
+    constant = qubo.objective.constant
 
     # Print result
     print("\n✅  QAOA Result (Sampler-based)")
     print(f"Objective value: {result.fval}")
     print(f"Binary solution: {result.x}")
+    print(f"Objective Function Constant : {constant}")
     print(f"Status: {result.status.name}")
+    print(f"Objective value + Constant : {result.fval + constant}")
 
-    return result
+    return result, constant
 
-def simulator_process(result, grid_size, sort_by="value"):
-    result_sample = result.samples
-    value_data = {}
+def decode_answer(result, chem, dist):
+    position = []
+    result = result.x
+    n = len(dist)
 
-    for sample in result_sample:
-        x = sample.x
-        prob = sample.probability
-        fval = sample.fval
+    for idx, i in enumerate(chem):
+        for j in range(idx * n, n + idx * n):
+            if result[j]:
+                position.append(f"{i}_{j - idx * n}")
 
-        # Convert bitstring to integer
-        bitstring = "".join(str(int(b)) for b in x)
-        value = int(bitstring, 2)
+    return [position]
 
-        if value not in value_data:
-            value_data[value] = {
-                "probability": 0.0,
-                "fvals": []
-            }
+def decode_answer_cons(result, qp):
+    """
+    result: OptimizationResult returned by Qiskit solver
+    qp: The QuadraticProgram used (must match variable order)
+    """
+    position = []
+    binary = result.x  # List of 0/1 results, aligned with qp.variables
+    variables = qp.variables
 
-        value_data[value]["probability"] += prob
-        value_data[value]["fvals"].append(fval)
+    for var, bit in zip(variables, binary):
+        if bit:
+            position.append(var.name)
 
-    # 정리된 결과: (value, prob, avg_fval)
-    entries = []
-    for value, data in value_data.items():
-        prob = data["probability"]
-        avg_fval = sum(data["fvals"]) / len(data["fvals"])
-        entries.append((value, prob, avg_fval))
-
-    # 정렬 방식 선택
-    if sort_by == "value":
-        sorted_items = sorted(entries, key=lambda x: x[0])
-    elif sort_by == "probability":
-        sorted_items = sorted(entries, key=lambda x: x[1], reverse=True)
-    else:
-        raise ValueError("sort_by must be 'value' or 'probability'")
-
-    return sorted_items
-
-def decode_answer(result, type_count, grid_size, type_names=None):
-    answer = result.x
-    output = []
-
-    if type_names is None:
-        type_names = [f"type{i}" for i in range(type_count)]
-
-    for idx, bit in enumerate(answer):
-        if bit == 1:
-            type_idx = idx // grid_size
-            pos_idx = idx % grid_size
-            label = f"{type_names[type_idx]}_{pos_idx}"
-            output.append(label)
-
-    return output
+    return [position]
 
