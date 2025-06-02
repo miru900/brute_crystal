@@ -46,7 +46,7 @@ def qiskit_simulator(key, settings):
     # cqqc.linear_salt(qp)
 
     result, constant = qcqs.simulator_result(qp) # simulating part
-    print(f"Simulating Quantum Computer Finished, time taken from starting is {time.time() - start} seconds.")
+    print(f"Simulating Quantum Circuit has been finished, time taken from starting is {time.time() - start} seconds.")
 
     # processing part 1, QAOA result plot
     # 나중에 만들어야지~~
@@ -58,7 +58,7 @@ def qiskit_simulator(key, settings):
         position = qcqs.decode_answer(result, chem, ewal_mat.dist); print(position)
     solcount = len(position)
     
-    print(f"Quantum data processing has benn finished, time taken from starting is {time.time() - start} seconds.")
+    print(f"Quantum data processing has been finished, time taken from starting is {time.time() - start} seconds.")
     print("Starting ASE processing")
 
     # processing part 3, ASE part
