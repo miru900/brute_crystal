@@ -3,11 +3,11 @@ from qiskit_optimization.algorithms import MinimumEigenOptimizer
 from qiskit_optimization.converters import QuadraticProgramToQubo
 from qiskit_algorithms import QAOA
 from qiskit_algorithms.utils import algorithm_globals
-from qiskit.primitives import Sampler  # <-- Use this instead of StatevectorSampler
-from qiskit.primitives import StatevectorSampler
 from qiskit_algorithms.optimizers import COBYLA
 from qiskit_algorithms.optimizers import L_BFGS_B
-
+from qiskit_aer import AerSimulator
+from qiskit_aer.primitives import Sampler as AerSampler
+import os
 import numpy as np
 
 def simulator_init(dist, chem, ion_count, charge):
@@ -158,8 +158,13 @@ def simulator_result(qp):
     converter = QuadraticProgramToQubo()
     qubo = converter.convert(qp)
 
+    # AerSimulator backend with parallelism
+    print("DEBUG:", AerSampler.__module__)
+    num_cores = os.cpu_count()
+    backend = AerSimulator(method = 'statevector', max_parallel_threads = num_cores - 1, max_parallel_shots = 1024)
+    sampler = AerSampler()
+
     # QAOA setup
-    sampler = Sampler()
     optimizer = COBYLA()
     qaoa = QAOA(optimizer = optimizer, sampler = sampler, reps = 1)
 
