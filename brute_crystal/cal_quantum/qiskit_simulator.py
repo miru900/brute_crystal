@@ -46,7 +46,7 @@ def simulator_init(dist, chem, ion_count, charge):
     qp.minimize(linear=linear, quadratic=quadratic)
 
     # Constraints
-    # First Constraints, there can be only one atom per position
+    # First Constraints, there can be only one atom per position -> useless i think, but left as legacy code!!!
     for i in range(grid_size):
         one_atom_one_pos = {}
         for j in range(T):
@@ -77,46 +77,86 @@ def simulator_init_cons(dist, chem, ion_count, charge, cons):
     def is_var_allowed(chem_idx, pos):
         return pos in cons[chem_idx]
 
+    def is_fixed(i, cons):
+        return "Fixed" in cons[i]
+
     # Keep track of defined variables
     defined_vars = set()
 
     # Define binary variables
     for i, elem in enumerate(chem):
-        for j in range(grid_size):
-            if is_var_allowed(i, j):
-                varname = f"{elem}_{j}"
-                qp.binary_var(name=varname)
-                defined_vars.add(varname)
+        if not is_fixed(i, cons):
+            for j in range(grid_size):
+                if is_var_allowed(i, j):
+                    varname = f"{elem}_{j}"
+                    print(varname)
+                    qp.binary_var(name=varname)
+                    defined_vars.add(varname)
 
     # Objective
     linear = {}
     quadratic = {}
+    constant = 0
 
     for i1 in range(grid_size):
+
         for j1 in range(T):
+
             if not is_var_allowed(j1, i1):
                 continue
+
+            if is_fixed(j1, cons):
+                continue
+
             var1 = f"{chem[j1]}_{i1}"
             q = W[i1, i1] * charge[chem[j1]] ** 2
             quadratic[(var1, var1)] = q
 
+
         for i2 in range(i1 + 1, grid_size):
+
             for j1 in range(T):
+
                 if not is_var_allowed(j1, i1):
                     continue
-                var1 = f"{chem[j1]}_{i1}"
+                if not is_var_allowed(j1, i2):
+                    continue
 
-                if is_var_allowed(j1, i2):
-                    var2 = f"{chem[j1]}_{i2}"
-                    if var1 in defined_vars and var2 in defined_vars:
-                        q_same = 2 * W[i1, i2] * charge[chem[j1]] ** 2
-                        quadratic[(var1, var2)] = q_same
+                var1 = f"{chem[j1]}_{i1}"
+                var2 = f"{chem[j1]}_{i2}"
+
+                if is_fixed(j1, cons):
+                    pass
+                
+                if var1 in defined_vars and var2 in defined_vars:
+                    q_same = 2 * W[i1, i2] * charge[chem[j1]] ** 2
+                    quadratic[(var1, var2)] = q_same
 
                 for j2 in range(j1 + 1, T):
+
                     if not is_var_allowed(j2, i2):
                         continue
+
                     var2 = f"{chem[j2]}_{i2}"
                     var3 = f"{chem[j2]}_{i1}"
+
+                    if is_fixed(j1, cons) and is_fixed(j2, cons):
+                        continue
+
+                    elif not is_fixed(j1, cons) and is_fixed(j2, cons):
+                        q_cross1 = 2 * W[i1, i2] * charge[chem[j1]] * charge[chem[j2]]
+                        linear[(var1)] = q_cross1
+                        q_cross2 = 2 * W[i1, i2] * charge[chem[j1]] * charge[chem[j2]]
+                        linear[(f"{chem[j1]}_{i2}")] = q_cross2
+                        continue
+
+                    elif is_fixed(j1, cons) and not is_fixed(j2, cons):
+                        q_cross1 = 2 * W[i1, i2] * charge[chem[j1]] * charge[chem[j2]]
+                        linear[(var2)] = q_cross1
+                        q_cross2 = 2 * W[i1, i2] * charge[chem[j1]] * charge[chem[j2]]
+                        linear[(var3)] = q_cross2
+                        continue
+
                     if var1 in defined_vars and var2 in defined_vars:
                         q_cross = 2 * W[i1, i2] * charge[chem[j1]] * charge[chem[j2]]
                         quadratic[(var1, var2)] = q_cross
@@ -126,21 +166,8 @@ def simulator_init_cons(dist, chem, ion_count, charge, cons):
 
     qp.minimize(linear=linear, quadratic=quadratic)
 
-    # Constraint 1: One atom per position
-    """
-    for i in range(grid_size):
-        constraint = {}
-        for j in range(T):
-            if is_var_allowed(j, i):
-                var = f"{chem[j]}_{i}"
-                if var in defined_vars:
-                    constraint[var] = 1
-        if constraint:
-            qp.linear_constraint(constraint, sense="==", rhs=1, name=f"one_atom_pos_{i}")
-    """
-
     # Constraint 2: Each atom type appears ion_count[i] times
-    for j in range(T):
+    for j in range(1):
         constraint = {}
         for i in range(grid_size):
             if is_var_allowed(j, i):
@@ -149,10 +176,10 @@ def simulator_init_cons(dist, chem, ion_count, charge, cons):
                     constraint[var] = 1
         qp.linear_constraint(constraint, sense="==", rhs=ion_count[j], name=f"satisfy_ion_count_{j}")
 
-    return qp
+    return qp, constant
 
 
-def simulator_result(qp):
+def simulator_result(qp, constant):
     
     # Convert to QUBO
     converter = QuadraticProgramToQubo()
@@ -161,18 +188,18 @@ def simulator_result(qp):
     # AerSimulator backend with parallelism
     print("DEBUG:", AerSampler.__module__)
     num_cores = os.cpu_count()
-    backend = AerSimulator(method = 'statevector', max_parallel_threads = num_cores - 1, max_parallel_shots = 1024)
-    sampler = AerSampler()
+    backend = AerSimulator(method = 'statevector', max_parallel_threads = num_cores - 1, max_parallel_shots = 2 * 20)
+    sampler = AerSampler(run_options={"shots": 100000})
 
     # QAOA setup
     optimizer = COBYLA()
-    qaoa = QAOA(optimizer = optimizer, sampler = sampler, reps = 1)
+    qaoa = QAOA(optimizer = optimizer, sampler = sampler, reps = 3)
 
     # Solve
     solver = MinimumEigenOptimizer(qaoa)
     result = solver.solve(qubo)
     result_sample = result.samples
-    constant = qubo.objective.constant
+    obj_value = result.fval + constant
 
     # Print result
     print("\n✅  QAOA Result (Sampler-based)")
@@ -182,7 +209,7 @@ def simulator_result(qp):
     print(f"Status: {result.status.name}")
     print(f"Objective value + Constant : {result.fval + constant}")
 
-    return result, constant
+    return result, obj_value
 
 def decode_answer(result, chem, dist):
     position = []
@@ -196,11 +223,18 @@ def decode_answer(result, chem, dist):
 
     return [position]
 
-def decode_answer_cons(result, qp):
+def decode_answer_cons(result, qp, cons, chem):
     """
     result: OptimizationResult returned by Qiskit solver
     qp: The QuadraticProgram used (must match variable order)
     """
+    fix = False
+    # fixed checker:
+    for pos in cons:
+        if isinstance(pos, list) and "Fixed" in pos:
+            fix = True
+            break
+
     position = []
     binary = result.x  # List of 0/1 results, aligned with qp.variables
     variables = qp.variables
@@ -208,6 +242,14 @@ def decode_answer_cons(result, qp):
     for var, bit in zip(variables, binary):
         if bit:
             position.append(var.name)
+
+    if fix:
+        for idx, pos in enumerate(cons):
+            if isinstance(pos, list) and "Fixed" in pos:
+                for j in pos[:-1]:  # all except "Fixed"
+                    position.append(chem[idx] + "_" + str(j))
+            else:
+                continue
 
     return [position]
 
