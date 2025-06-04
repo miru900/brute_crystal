@@ -38,14 +38,14 @@ def qiskit_simulator(key, settings):
     # Qiskit Part
     print(ion_count)
     if settings[key]["cons"]:
-        qp = qcqs.simulator_init_cons(ewal_mat.dist, chem, ion_count, charge, settings[key]["cons"])
+        qp, constant = qcqs.simulator_init_cons(ewal_mat.dist, chem, ion_count, charge, settings[key]["cons"])
     else:
-        qp = qcqs.simulator_init(ewal_mat.dist, chem, ion_count, charge) # initialization part
+        qp, constant = qcqs.simulator_init(ewal_mat.dist, chem, ion_count, charge) # initialization part
 
     # special constraint part
     # cqqc.linear_salt(qp)
 
-    result, constant = qcqs.simulator_result(qp) # simulating part
+    result, obj_value = qcqs.simulator_result(qp, constant) # simulating part
     print(f"Simulating Quantum Circuit has been finished, time taken from starting is {time.time() - start} seconds.")
 
     # processing part 1, QAOA result plot
@@ -53,7 +53,7 @@ def qiskit_simulator(key, settings):
 
     # processing part 2, bit to answers
     if settings[key]["cons"]:
-        position = qcqs.decode_answer_cons(result, qp); print(position)
+        position = qcqs.decode_answer_cons(result, qp, settings[key]["cons"], chem); print(position)
     else:
         position = qcqs.decode_answer(result, chem, ewal_mat.dist); print(position)
     solcount = len(position)
@@ -82,7 +82,7 @@ def qiskit_simulator(key, settings):
         all_positions.append(pos_num)
         all_symbol.append(symbol)
     
-    print(f"The calculated energy is {result.fval:.03f} eevee")
+    print(f"The calculated energy is {obj_value:.03f} eevee")
 
     if angle_if:
 
