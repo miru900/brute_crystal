@@ -2,13 +2,14 @@ import gurobipy as gb  ;  import numpy as np  ;  from data.charge import charge
 from scipy.constants import elementary_charge as elec_c  ;  from scipy.constants import electron_volt as eevee
 from cal_int.pot_cal.elec_pot import energy_elec_addup as elad
 from cal_int.pot_cal.ewal_pot import energy_ewal_addup as ewad
+from cal_int.pot_cal.ewal_pot2 import energy_ewal_addup_charge2 as ewad2
 from cal_int.pot_cal.buck_pot import energy_buck_addup as buad
 from cal_int.pot_cal.buck_pot2 import energy_buck_addup as buad2
 from cal_int.pot_cal.ase_kim_pot import energy_kim_addup as kiad
 import cal_int.cons_file.constraints_NCM as cons_NCM
 import cal_int.cons_file.constraints_Battest as cons_btest
 
-def integer(chem, ion_count, mod, ewal_mat = None, buck_mat = None, kim_mat = None, info = None):
+def integer(chem, ion_count, mod, ewal_mat = None, buck_mat = None, kim_mat = None, info = None, charge2 = None):
     # example " chem = ["Sr", "Ti", "O"], ion_count = [1, 1, 3], grid = grid from open_grid, matrix = matrix from potential calculator
     # orb_key = orb_pos = [0, 1, 2, 3, 4, 5, 6, 7], orb_size = [1, 1, 1, 1, 1, 1, 1, 1], O = N (orbit length = grid square)
 
@@ -40,7 +41,7 @@ def integer(chem, ion_count, mod, ewal_mat = None, buck_mat = None, kim_mat = No
         energy1, energy2 = mod_4(m, O, T, Vars, orb_key, ewal_mat, buck_mat, charge, chem, info)
         e_sum = energy1 + energy2
     if mod == 5:
-        energy1 = mod_5(m, O, T, Vars, orb_key, ewal_mat, charge, chem, info)
+        energy1 = mod_5(m, O, T, Vars, orb_key, ewal_mat, charge, chem, info, charge2)
         e_sum = energy1
     if mod == 6:
         energy1, energy2 = mod_6(m, O, T, Vars, orb_key, ewal_mat, buck_mat, charge, chem, info)
@@ -53,14 +54,14 @@ def integer(chem, ion_count, mod, ewal_mat = None, buck_mat = None, kim_mat = No
 
     # Special Constraints for Special Situation
     # cons_NCM.NCM_cons_2(m, Vars)
-    # cons_btest.LiCo(m, Vars)
+    cons_btest.NCM811(m, Vars)
 
     # Setting Time limit, Solving QUBO problem, and return result
     # m.setParam('NoRelHeurTime', 30)
     m.setParam("PoolSolutions", 100)
     m.setParam("PoolSearchMode", 2)
     m.setParam("Heuristics", 0.0)
-    m.setParam("TimeLimit", 60)
+    m.setParam("TimeLimit", 600)
     m.setObjective(e_sum, gb.GRB.MINIMIZE)
     m.optimize()
 
@@ -90,9 +91,12 @@ def mod_4(m, O, T, Vars, orb_key, ewal_mat, buck_mat, charge, chem, info):
     
     return energy1, energy2
 
-def mod_5(m, O, T, Vars, orb_key, ewal_mat, charge, chem, info):
+def mod_5(m, O, T, Vars, orb_key, ewal_mat, charge, chem, info, charge2):
     energy1 = gb.QuadExpr()
-    ewad(O, T, Vars, orb_key, ewal_mat, charge, energy1, chem)
+    if charge2:
+        ewad2(O, T, Vars, orb_key, ewal_mat, charge2, energy1, chem)
+    else:
+        ewad(O, T, Vars, orb_key, ewal_mat, charge, energy1, chem)
     
     return energy1
 

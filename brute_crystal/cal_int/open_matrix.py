@@ -41,4 +41,24 @@ def mat_gen(pos_data, cell_size, ortho, angle):
     elif ortho and not angle_if:
         return np.multiply(pos_data, cell_size) * 1e-10
     else:
-        return np.array(pos_data) * cell_size * 1e-10
+        return np.array(pos_data) * cell_size * 1e-1
+
+def charge_data_to_list(directory):
+    direc = f"./data/charge/" + directory
+    charge2 = [] # charge will be filled into this list, 1 to last atom
+
+    charge_data = open(direc, "r")
+    for i in charge_data:
+        i = i.strip()
+        try:
+            i = float(i)
+            i = round(i, 4)
+            charge2.append(i)
+        except:
+            print("Error!")
+
+    print(charge2, len(charge2))
+
+    return charge2
+
+
