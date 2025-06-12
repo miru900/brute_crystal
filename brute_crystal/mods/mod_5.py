@@ -28,6 +28,12 @@ def mod_cell_int_periodic2(key, settings):
     ewal_mat = pcew2.Ewald(pos_data2, settings[key]["cell_size"], settings[key]["grid"], settings[key]["angle"])
     ewal_mat.vec_gen()  ;  ewal_mat.ewal_mat_gen()  ;  print(ewal_mat.dist)  ;  #print(ewal_mat.position)
 
+    # If charge is assigned for each atoms, this function would work, and the function is in oopen_matrix, om
+    if settings[key]["charge"]:
+        charge2 = om.charge_data_to_list(settings[key]["charge"])
+    else:
+        charge2 = None
+
     # Buckingham Part
     # buck_mat = pcbu2.Buckingham(pos_data2, settings[key]["cell_size"], settings[key]["grid"], symbol)  ;  buck_mat.operator()
     # ion_pair = buck_mat.info["ion_pair"]  ;   print(buck_mat.dist)
@@ -35,7 +41,7 @@ def mod_cell_int_periodic2(key, settings):
     print(f"open_grid ~ generating matrix took {time.time() - start} seconds.")
     
     # integer_program.py
-    position, op_energy, solcount = ip.integer(chem, ion_count, settings[key]["State"], ewal_mat.dist, buck_mat = None, info = None)
+    position, op_energy, solcount = ip.integer(chem, ion_count, settings[key]["State"], ewal_mat.dist, buck_mat = None, info = None, charge2 = charge2)
     print(f"open_grid ~ integer programming took {time.time() -start} seconds.")
     
     # Processing answer | splitting answer (Example. Na_1 -> Na, 1)
