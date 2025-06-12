@@ -107,6 +107,7 @@ class Ewald:
         for i in range(N):
             for j in range(i):
                 self.dist[i, j] = self.dist[j, i]
+
         self.dist *= scale
 
     def operator(self):
@@ -128,4 +129,22 @@ def energy_ewal_addup(N, T, Vars, o_pos, dist, charge, energy, chem):
                 for j2 in range(j1 + 1, T):
                     energy.add(Vars[j1][o_pos[i1]] * Vars[j2][o_pos[i2]] * 2 * dist[i1, i2] * charge[chem[j1]] * charge[chem[j2]])  # Two different types
                     energy.add(Vars[j2][o_pos[i1]] * Vars[j1][o_pos[i2]] * 2 * dist[i1, i2] * charge[chem[j1]] * charge[chem[j2]])  # Symmetrical case
+
+
+def energy_ewal_addup_charge2(N, T, Vars, o_pos, dist, charge2, energy, chem):
+    # N = grid size, T = ion type count
+    # np.savetxt('testEwaldNew.out', dist, delimiter=',')
+    for i1 in range(N):
+
+        for j1 in range(T):  # self-interaction
+            energy.add(Vars[j1][o_pos[i1]] * Vars[j1][o_pos[i1]] * dist[i1, i1] * charge2[i1] ** 2)
+
+        for i2 in range(i1 + 1, N):
+            # print(i2)
+            for j1 in range(T):  # pairwise Coulumb
+                energy.add(Vars[j1][o_pos[i1]] * Vars[j1][o_pos[i2]] * 2 * dist[i1, i2] * charge2[i1] * charge2[i2])  # i1,i2 have the same type of ion
+
+                for j2 in range(j1 + 1, T):
+                    energy.add(Vars[j1][o_pos[i1]] * Vars[j2][o_pos[i2]] * 2 * dist[i1, i2] * charge2[i1] * charge2[i2])  # Two different types
+                    energy.add(Vars[j2][o_pos[i1]] * Vars[j1][o_pos[i2]] * 2 * dist[i1, i2] * charge2[i1] * charge2[i2])  # Symmetrical case
 
