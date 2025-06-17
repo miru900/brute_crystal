@@ -62,8 +62,10 @@ def simulator_init(dist, chem, ion_count, charge):
             var_name = f"{chem[i]}_{j}"
             satisfy_ion_count[var_name] = 1
         qp.linear_constraint(satisfy_ion_count, sense="==", rhs=ion_count[i], name=f"satisfy_ion_count_{i}")
+    
+    constant = 0
 
-    return qp
+    return qp, constant
 
 def simulator_init_cons(dist, chem, ion_count, charge, cons):
     algorithm_globals.random_seed = 42
@@ -180,7 +182,7 @@ def simulator_init_cons(dist, chem, ion_count, charge, cons):
 
 
 def simulator_result(qp, constant):
-    
+
     # Convert to QUBO
     converter = QuadraticProgramToQubo()
     qubo = converter.convert(qp)
@@ -188,12 +190,11 @@ def simulator_result(qp, constant):
     # AerSimulator backend with parallelism
     print("DEBUG:", AerSampler.__module__)
     num_cores = os.cpu_count()
-    backend = AerSimulator(method = 'statevector', max_parallel_threads = num_cores - 1, max_parallel_shots = 2 * 20)
-    sampler = AerSampler(run_options={"shots": 100000})
+    sampler = AerSampler(run_options={"shots" : 1000000, "max_parallel_shots" : 10000, "max_parallel_threads" : num_cores - 1})
 
     # QAOA setup
     optimizer = COBYLA()
-    qaoa = QAOA(optimizer = optimizer, sampler = sampler, reps = 3)
+    qaoa = QAOA(optimizer = optimizer, sampler = sampler, reps = 5)
 
     # Solve
     solver = MinimumEigenOptimizer(qaoa)
