@@ -48,8 +48,13 @@ def qiskit_simulator(key, settings):
     result, obj_value = qcqs.simulator_result(qp, constant) # simulating part
     print(f"Simulating Quantum Circuit has been finished, time taken from starting is {time.time() - start} seconds.")
 
-    # processing part 1, QAOA result plot
-    # 나중에 만들어야지~~
+    # processing part 1, QAOA probability distribution
+    try:
+        with open(f"../results/{settings[key]['Symbol']}_quantum/distribution.txt", "w") as f:
+            for sample in result.samples:
+                f.write("array : " + str(sample.x) + " | " + "value : " + str(sample.fval) + " | " + "probability : " + str(sample.probability) + "\n")
+    except:
+        print(f"../results/{settings[key]['Symbol']}_quantum/distribution.txt, the directory does not exist!")
 
     # processing part 2, bit to answers
     if settings[key]["cons"]:
@@ -101,6 +106,10 @@ def qiskit_simulator(key, settings):
             write(file_path, atoms)
             write(file_path.replace(".cif", ".vasp"), atoms, format='vasp')
 
+            with open(f"../results/{settings[key]['Symbol']}_quantum/energy.txt", "w") as f:
+                f.write(str(obj_value))
+
+
     elif ortho and not angle_if:
 
         cell_size = settings[key]["cell_size"]
@@ -117,6 +126,9 @@ def qiskit_simulator(key, settings):
             write(file_path, atoms)
             write(file_path.replace(".cif", ".vasp"), atoms, format='vasp')
 
+            with open(f"../results/{settings[key]['Symbol']}_quantum/energy.txt", "w") as f:
+                f.write(str(obj_value))
+
     else:
         pos_num = np.array(pos_num) ; cell_size = settings[key]["cell_size"] ; pos_num *= cell_size
         atoms = Atoms(symbol, positions=pos_num, cell=[settings[key]["cell_size"]] * 3, pbc=[True, True, True])
@@ -124,6 +136,12 @@ def qiskit_simulator(key, settings):
         write(file_path, atoms)
         write(file_path.replace(".cif", ".vasp"), atoms, format='vasp')
 
+        with open(f"../results/{settings[key]['Symbol']}_quantum/energy.txt", "w") as f:
+                f.write(str(obj_value))
+
     end = time.time()
     print(f"The Calculation time is {end - start} seconds")
+
+    with open(f"../results/{settings[key]['Symbol']}_quantum/time.txt", "w") as f:
+        f.write(str(end - start))
 
