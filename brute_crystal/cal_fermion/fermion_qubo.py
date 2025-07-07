@@ -109,6 +109,8 @@ def simulator_init_cons(dist, chem, ion_count, charge, cons):
     # Compute and show probabilities
     print("\nGround state probabilities:")
     probs = np.abs(e_vecs[:, 0]) ** 2
+    n = int(np.log2(len(probs)))
+    
     for i, p in enumerate(probs):
         if p > 1e-4:
             bitstring = format(i, f'0{n}b')  # 문자열 예: '1100'
