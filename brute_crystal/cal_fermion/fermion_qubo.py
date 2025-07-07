@@ -58,7 +58,7 @@ def simulator_init_cons(dist, chem, ion_count, charge, cons):
     Hs_dense = get_sparse_operator(Hq).toarray()
     dim = Hs_dense.shape[0]
     n_qubits = int(np.log2(dim))
-    k = ion_count[0]   # 원하는 particle number
+    k = ion_count[0]  
 
     # Build projector
     basis = []
