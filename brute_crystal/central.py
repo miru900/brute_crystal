@@ -7,10 +7,13 @@ import mods.mod_6 as m6
 import mods.mod_7 as m7
 import mods.mod_8 as m8
 import mods.mod_9 as m9
+import mods.mod_10 as m10
 from settings import settings
 
 angstrom_symbol = "\u212B"
-mod_list = [m1.mod_cell_one, m2.mod_cell_vari, m3.mod_cell_integer, m4.mod_cell_int_periodic, m5.mod_cell_int_periodic2, m6.mod_cell_int_periodic3, m7.mod_cell_int_ase_kim, m8.qiskit_simulator, m9.fermion_simulator]
+mod_list = [m1.mod_cell_one, m2.mod_cell_vari, m3.mod_cell_integer, m4.mod_cell_int_periodic, m5.mod_cell_int_periodic2, m6.mod_cell_int_periodic3, m7.mod_cell_int_ase_kim, m8.qiskit_simulator, m9.fermion_simulator,
+        m10.pyscf_simulator]
+
 iter_num = 1
 sample_size = 1
 
