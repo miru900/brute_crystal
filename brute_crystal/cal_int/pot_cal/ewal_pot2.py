@@ -148,3 +148,67 @@ def energy_ewal_addup_charge2(N, T, Vars, o_pos, dist, charge2, energy, chem):
                     energy.add(Vars[j1][o_pos[i1]] * Vars[j2][o_pos[i2]] * 2 * dist[i1, i2] * charge2[i1] * charge2[i2])  # Two different types
                     energy.add(Vars[j2][o_pos[i1]] * Vars[j1][o_pos[i2]] * 2 * dist[i1, i2] * charge2[i1] * charge2[i2])  # Symmetrical case
 
+def energy_ewal_addup_cons(N, T, Vars, o_pos, dist, charge, energy, chem, cons):
+
+    # variables -> varis and fixed
+    grid_size = dist.shape[0]
+    varis, fixed, checker = {}, {}, {}
+    print(cons)
+    for i, elem in enumerate(chem):
+        for j in range(grid_size):
+            if j not in cons[i]:
+                continue
+            var = f"{elem}_{j}"
+            num = j
+            if "Fixed" in cons[i]:
+                fixed[var] = num
+            else:
+                varis[var] = num
+            checker[var] = num
+
+    print("=== Variables Debug ===")
+    print("varis:", varis)
+    print("fixed:", fixed)
+
+    for i1 in range(N):
+
+        for j1 in range(T):
+            var = f"{chem[j1]}_{i1}"
+            if var not in checker:
+                continue
+            if var in fixed:
+                continue
+            energy.add(Vars[j1][o_pos[i1]] * Vars[j1][o_pos[i1]] * dist[i1, i1] * charge[chem[j1]] ** 2)
+
+        for i2 in range(i1 + 1, N):
+            
+            for j1 in range(T):
+                var1 = f"{chem[j1]}_{i1}"
+                var2 = f"{chem[j1]}_{i2}"
+                if var1 not in checker or var2 not in checker:
+                    continue
+                if var1 in fixed and var2 in fixed:
+                    continue
+                if var1 in fixed or var2 in fixed:
+                    continue
+                energy.add(Vars[j1][o_pos[i1]] * Vars[j1][o_pos[i2]] * 2 * dist[i1, i2] * charge[chem[j1]] ** 2)  # i1,i2 have the same type of ion
+
+                for j2 in range(j1 + 1, T):
+                    var2 = f"{chem[j2]}_{i2}"
+                    var3 = f"{chem[j2]}_{i1}"
+                    if var2 not in checker or var3 not in checker:
+                        continue
+                    if var1 in fixed  and var2 in fixed:
+                        continue
+                    elif var1 not in fixed and var2 in fixed:
+                        q_cross1 = 2 * dist[i1, i2] * charge[chem[j1]] * charge[chem[j2]]
+                        energy.add(Vars[j1][o_pos[i1]] * q_cross1)
+                        q_cross2 = 2 * W[i1, i2] * charge[chem[j1]] * charge[chem[j2]]
+                        energy.add(Vars[j1][o_pos[i2]] * q_cross2)
+                        continue
+                    elif var1 in fixed and var2 not in fixed:
+                        continue
+
+
+    
+
