@@ -34,6 +34,13 @@ def mod_cell_int_periodic2(key, settings):
     else:
         charge2 = None
 
+    # Constarint part
+    if settings[key]["cons"]:
+        cons = settings[key]["cons"]
+    else:
+        cons = None
+
+
     # Buckingham Part
     # buck_mat = pcbu2.Buckingham(pos_data2, settings[key]["cell_size"], settings[key]["grid"], symbol)  ;  buck_mat.operator()
     # ion_pair = buck_mat.info["ion_pair"]  ;   print(buck_mat.dist)
@@ -41,7 +48,7 @@ def mod_cell_int_periodic2(key, settings):
     print(f"open_grid ~ generating matrix took {time.time() - start} seconds.")
     
     # integer_program.py
-    position, op_energy, solcount = ip.integer(chem, ion_count, settings[key]["State"], ewal_mat.dist, buck_mat = None, info = None, charge2 = charge2)
+    position, op_energy, solcount = ip.integer(chem, ion_count, settings[key]["State"], ewal_mat.dist, buck_mat = None, info = None, charge2 = charge2, cons = cons)
     print(f"open_grid ~ integer programming took {time.time() -start} seconds.")
     
     # Processing answer | splitting answer (Example. Na_1 -> Na, 1)
