@@ -3,6 +3,7 @@ from openfermion.transforms import jordan_wigner
 from openfermion.linalg import get_sparse_operator
 import numpy as np
 from scipy.linalg import eigh
+from scipy.sparse.linalg import eigsh
 
 
 def simulator_init_cons(dist, chem, ion_count, charge, cons):
@@ -49,16 +50,33 @@ def simulator_init_cons(dist, chem, ion_count, charge, cons):
                 idx, jdx = varis[var1], varis[var2]
                 Hf += FermionOperator(f'{idx}^ {idx} {jdx}^ {jdx}', q_same)
 
+                for j2 in range(j1 + 1, len(chem)):
+                    var2 = f"{chem[j2]}_{i2}"
+                    var3 = f"{chem[j2]}_{i1}"
+                    if var2 not in checker or var3 not in checker:
+                        continue
+                    if var1 in fixed  and var2 in fixed:
+                        continue
+                    elif var1 not in fixed and var2 in fixed:
+                        q_cross1 = 2 * dist[i1, i2] * charge[chem[j1]] * charge[chem[j2]]
+                        Hf += FermionOperator(f'{i1}^ {i1}', q_cross1)
+                        q_cross2 = 2 * W[i1, i2] * charge[chem[j1]] * charge[chem[j2]]
+                        Hf += FermionOperator(f'{i2}^ {i2}', q_cross2)
+                        continue
+                    elif var1 in fixed and var2 not in fixed:
+                        continue
+
+
     print("=== Objective Function Generated ===")
 
     # Jordan-Wigner transform
     Hq = jordan_wigner(Hf)
 
     # Convert to dense matrix
-    Hs_dense = get_sparse_operator(Hq).toarray()
+    Hs_dense = get_sparse_operator(Hq)
     dim = Hs_dense.shape[0]
     n_qubits = int(np.log2(dim))
-    k = ion_count[0]  
+    k = ion_count[0]   # 원하는 particle number
 
     # Build projector
     basis = []
@@ -75,7 +93,7 @@ def simulator_init_cons(dist, chem, ion_count, charge, cons):
     H_proj = P @ Hs_dense @ P.T
 
     # Diagonalize
-    e_vals, e_vecs = eigh(H_proj)
+    e_vals, e_vecs = eigsh(H_proj, k=1, which='SA', tol=1e-5, maxiter=1e3)
 
     ground_energy = e_vals[0]
     ground_state_proj = e_vecs[:, 0]
