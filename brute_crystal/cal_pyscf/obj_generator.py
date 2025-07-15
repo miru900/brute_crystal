@@ -30,14 +30,18 @@ def simulator_init_cons(dist, chem, ion_count, charge, cons):
     print("fixed:", fixed)
 
     # Objective Function
+    constant = 0
 
     for i1 in range(grid_size):
         for j1, elem in enumerate(chem):
             var = f"{elem}_{i1}"
-            if var not in checker or var in fixed:
+            if var not in checker:
+                continue
+            if var in fixed:
+                constant += dist[i1, i1] * charge[elem] ** 2
                 continue
             idx = varis[var]
-            qubo[idx, idx] += dist[i1, i1] * charge[elem]
+            qubo[idx, idx] += dist[i1, i1] * charge[elem] ** 2
 
         for i2 in range(i1 + 1, grid_size):
             for j1, elem in enumerate(chem):
@@ -45,13 +49,34 @@ def simulator_init_cons(dist, chem, ion_count, charge, cons):
                 var2 = f"{elem}_{i2}"
                 if var1 not in checker or var2 not in checker:
                     continue
+                if var1 in fixed and var2 in fixed:
+                    constant += 2 * dist[i1, i2] * charge[elem] ** 2
+                    continue
                 if var1 in fixed or var2 in fixed:
                     continue
                 q_same = 2 * dist[i1, i2] * charge[elem] ** 2
                 idx, jdx = varis[var1], varis[var2]
                 qubo[idx, jdx] += q_same
 
+                for j2 in range(j1 + 1, len(chem)):
+                    var2 = f"{chem[j2]}_{i2}"
+                    var3 = f"{chem[j2]}_{i1}"
+                    if var2 not in checker or var3 not in checker:
+                        continue
+                    if var1 in fixed  and var2 in fixed:
+                        constant += 4 * dist[i1, i2] * charge[elem] * charge[chem[j2]]
+                        continue
+                    elif var1 not in fixed and var2 in fixed:
+                        q_cross1 = 2 * dist[i1, i2] * charge[chem[j1]] * charge[chem[j2]]
+                        qubo[i1, i1] += q_cross1
+                        q_cross2 = 2 * W[i1, i2] * charge[chem[j1]] * charge[chem[j2]]
+                        qubo[i2, i2] += q_cross2
+                        continue
+                    elif var1 in fixed and var2 not in fixed:
+                        continue
+
     print("=== Objective Function Generated ===")
+    print(constant)
 
     return qubo, norb, nelec
 
@@ -85,7 +110,7 @@ def solve_with_pyscf(qubo, norb, nelec):
     h2 = (h2e_aa, h2e_ab, h2e_bb)
 
     # Eigenvalue, Eigenvector calculator
-    e, fcivec = fci.direct_uhf.kernel(h1, h2, norb, (nelec, 0), nroots = 10)
+    e, fcivec = fci.direct_uhf.kernel(h1, h2, norb, (nelec, 0), nroots = 2)
 
     return e, fcivec
 
