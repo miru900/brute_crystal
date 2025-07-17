@@ -4,6 +4,7 @@ from openfermion.linalg import get_sparse_operator
 import numpy as np
 from pyscf import fci
 from scipy.linalg import eigh
+from pyscf.fci.cistring import addr2str
 
 def simulator_init_cons(dist, chem, ion_count, charge, cons):
 
@@ -110,9 +111,58 @@ def solve_with_pyscf(qubo, norb, nelec):
     h2 = (h2e_aa, h2e_ab, h2e_bb)
 
     # Eigenvalue, Eigenvector calculator
-    e, fcivec = fci.direct_uhf.kernel(h1, h2, norb, (nelec, 0), nroots = 2)
+    e, fcivec = fci.direct_uhf.kernel(h1, h2, norb, (nelec, 0), nroots = 924)
 
     return e, fcivec
 
-        
+def binary_treat(binary, norb):
+    binary = binary[2 : ]
+    if len(binary) < norb:
+        binary = "0" * (norb - len(binary)) + binary
 
+    answer = binary[::-1]
+
+    return answer
+
+def decode_answer(fcivec, norb, nelec):
+    bits = []
+
+    for binary in fcivec:
+        for i in range(len(binary)):
+            if binary[i][0] > 0.99:
+                answer = bin(addr2str(norb, nelec, i))
+                answer = binary_treat(answer, norb)
+                bits.append(answer)
+
+    return bits
+
+def bits_to_answer(bits, cons, chem):
+    """
+    Decode bitstring back to atom positions
+    bits: list of bitlists [[0,1,0,...]]
+    cons: constraint list [[0,1,2,...]]
+    chem: list of chemical species names
+    """
+    fix = False
+    for pos in cons:
+        if isinstance(pos, list) and "Fixed" in pos:
+            fix = True
+            break
+
+    position = []
+    bits = bits[0]
+    print("Constraints:", cons)
+
+    for c, bit in zip(cons[0], bits):
+        if int(bit):
+            position.append(f"{chem[0]}_{c}")
+
+    if fix:
+        for idx, pos in enumerate(cons):
+            if isinstance(pos, list) and "Fixed" in pos:
+                for j in pos[:-1]:  # all except "Fixed"
+                    position.append(f"{chem[idx]}_{j}")
+            else:
+                continue
+
+    return [position]
