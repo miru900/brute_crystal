@@ -40,10 +40,126 @@ def pyscf_simulator(key, settings):
         pass
 
     # Pyscf part
-    energy, vector = pyog.solve_with_pyscf(qubo, norb, nelec)
-    ge = energy[0]
-    print(f"Qubo Energy : {ge:.3f} eevee")
+    energy, fcivec = pyog.solve_with_pyscf(qubo, norb, nelec)
+    obj_value = energy[0]
+    print(f"Qubo Energy : {obj_value:.3f} eevee")
     print(energy)
-    print("Number of basis set : ", len(vector[0]))
+    print("Number of basis set : ", len(fcivec[0]))
     print(f"open_grid ~ pyscf matrix diagonalization took {time.time() - start} seconds.")
+
+    # Answer Decoding part
+    bits = pyog.decode_answer(fcivec, norb, nelec)
+    
+    # processing part 1, Fermion Distribution Result
+    try:
+        with open(f"../results/{settings[key]['Symbol']}_pyscf/distribution.txt", "w") as f:
+            for (ene, bit) in zip(energy, bits):
+                f.write("array : " + str(bit) + " | " + "value : " + str(ene) + "\n")
+    except:
+        print(f"../results/{settings[key]['Symbol']}_pyscf/distribution.txt, the directory does not exist!")
+
+    # processing part 2, bit to answers
+    if settings[key]["cons"]:
+        position = pyog.bits_to_answer(bits, settings[key]["cons"], chem)
+    else:
+        pass
+    solcount = len(position)
+
+    print(f"Fermionic data processing has been finished, time taken from starting is {time.time() - start} seconds.")
+    print("Starting ASE processing")
+
+    # processing part 3, ASE part
+    all_positions = []
+    all_symbol = []
+    all_gridnum = []
+
+    for i in range(solcount):
+        symbol = ""
+        pos_num = []
+        g_num = []
+        iter_position = position[i]
+        for pos in iter_position:
+            print(f"One of positions {pos}")
+            a, b = pos.split("_")
+            symbol += a ; b = int(b) ; c = np.array(pos_data1[b])
+            pos_num.append(c)
+            g_num.append(b)
+
+        all_gridnum.append(g_num)
+        all_positions.append(pos_num)
+        all_symbol.append(symbol)
+
+    if angle_if:
+
+        for i in range(solcount):
+            c_pos = []
+            current_grid_num = all_gridnum[i]
+
+            for j in current_grid_num:
+                c_pos.append(pos_data2[j])
+
+            c_pos = np.array(c_pos)
+            c_pos *= 1e10  ;  # print(c_pos)
+
+            atoms = Atoms(all_symbol[i], positions=c_pos, cell = settings[key]["cell_size"] + settings[key]["angle"], pbc=[True, True, True])
+            output_dir = f"../results/{settings[key]['Symbol']}_pyscf" ; os.makedirs(output_dir, exist_ok = True) ; file_path = os.path.join(output_dir, f"{i}_pyscf.cif")
+            write(file_path, atoms)
+            write(file_path.replace(".cif", ".vasp"), atoms, format='vasp')
+
+            with open(f"../results/{settings[key]['Symbol']}_pyscf/energy.txt", "w") as f:
+                f.write(str(obj_value))
+
+            # processing part 1, Pyscf Distribution Result
+            try:
+                with open(f"../results/{settings[key]['Symbol']}_pyscf/distribution.txt", "w") as f:
+                    for (ene, bit) in zip(energy, bits):
+                        f.write("array : " + str(bit) + " | " + "value : " + str(ene) + "\n")
+            except:
+                print(f"../results/{settings[key]['Symbol']}_pyscf/distribution.txt, the directory does not exist!")
+
+
+    elif ortho and not angle_if:
+
+        cell_size = settings[key]["cell_size"]
+        for i in range(solcount):
+            current_processing_pos = all_positions[i]
+
+            for j, pos in enumerate(current_processing_pos):
+                pos = np.multiply(pos, cell_size)
+                current_processing_pos[j] = pos
+
+            c_pos = np.array(current_processing_pos)
+            atoms = Atoms(all_symbol[i], positions=c_pos, cell= settings[key]["cell_size"], pbc=[True, True, True])
+            output_dir = f"../results/{settings[key]['Symbol']}_pyscf" ; os.makedirs(output_dir, exist_ok = True) ; file_path = os.path.join(output_dir, f"{i}_pyscf.cif")
+            write(file_path, atoms)
+            write(file_path.replace(".cif", ".vasp"), atoms, format='vasp')
+
+            with open(f"../results/{settings[key]['Symbol']}_pyscf/energy.txt", "w") as f:
+                f.write(str(obj_value))
+
+            # processing part 1, Pyscf Distribution Result
+            try:
+                with open(f"../results/{settings[key]['Symbol']}_pyscf/distribution.txt", "w") as f:
+                    for (ene, bit) in zip(energy, bits):
+                        f.write("array : " + str(bit) + " | " + "value : " + str(ene) + "\n")
+            except:
+                print(f"../results/{settings[key]['Symbol']}_pyscf/distribution.txt, the directory does not exist!")
+
+
+    else:
+        pos_num = np.array(pos_num) ; cell_size = settings[key]["cell_size"] ; pos_num *= cell_size
+        atoms = Atoms(symbol, positions=pos_num, cell=[settings[key]["cell_size"]] * 3, pbc=[True, True, True])
+        output_dir = f"../results/{settings[key]['Symbol']}_pyscf" ; os.makedirs(output_dir, exist_ok = True) ; file_path = os.path.join(output_dir, f"{settings[key]['Symbol']}_pyscf.cif")
+        write(file_path, atoms)
+        write(file_path.replace(".cif", ".vasp"), atoms, format='vasp')
+
+        with open(f"../results/{settings[key]['Symbol']}_pyscf/energy.txt", "w") as f:
+                f.write(str(obj_value))
+
+    end = time.time()
+    print(f"The Calculation time is {end - start} seconds")
+
+    with open(f"../results/{settings[key]['Symbol']}_pyscf/time.txt", "w") as f:
+        f.write(str(end - start))
+
 
